@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>MMR Info</title>
+  </head>
+  <body>
+    <style>
+      /* Stili per il body */
+body {
+font-family: Arial, sans-serif;
+margin: 0;
+padding: 0;
+background-color: #f2f2f2;
+}
+
+/* Stili per il titolo */
+h1 {
+text-align: center;
+margin-top: 40px;
+margin-bottom: 20px;
+color: #333;
+}
+
+/* Stili per il form */
+form {
+display: flex;
+flex-direction: column;
+align-items: center;
+margin-bottom: 40px;
+}
+
+label {
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+input[type="text"] {
+    padding: 8px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    margin-bottom: 20px;
+    width: 200px;
+    box-sizing: border-box;
+    text-align: center; /* aggiunta */
+  }
+
+button[type="button"] {
+    background-color: #333;
+    color: #fff;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 20px; /* spostato dalla regola precedente */
+}
+
+button[type="button"]:hover {
+background-color: #555;
+}
+
+/* Stili per le informazioni */
+#info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+p {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+/* Stili per i messaggi di errore */
+#error {
+  color: #f00;
+  font-size: 16px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+  </style>
+    <h1>MMR Info</h1>
+    <form>
+      <label for="username">Username:</label>
+      <input type="text" id="username" placeholder="Username" name="username" required>
+      <label for="tag">Tag:</label>
+      <input type="text" id="tag" placeholder="Tag" name="tag" required>
+      <button type="button" onclick="getMMRInfo()">Ottieni le informazioni</button>
+    </form>
+    <div id="info"></div>
+
+    <script>
+
+      function setCookie(name, value, days) {
+        const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+        document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+      }
+
+      function getCookie(name) {
+        const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)(;|$)`));
+        if (match) {
+          return decodeURIComponent(match[2]);
+        }
+        return null;
+      }
+
+      const usernameInput = document.getElementById("username");
+      const tagInput = document.getElementById("tag");
+
+      const savedUsername = getCookie("username_mmr");
+      const savedTag = getCookie("tag_mmr");
+
+      if (savedUsername) {
+        usernameInput.value = savedUsername;
+      }
+
+      if (savedTag) {
+        tagInput.value = savedTag;
+      }
+
+      function getMMRInfo() {
+        const username = document.getElementById("username").value;
+        const tag = document.getElementById("tag").value;
+        const urlMMR = `https://api.henrikdev.xyz/valorant/v1/mmr/eu/${username}/${tag}`;
+        const urlAccount = `https://api.henrikdev.xyz/valorant/v1/account/${username}/${tag}`;
+
+        setCookie("username_mmr", username, 7);
+        setCookie("tag_mmr", tag, 7);
+
+        fetch(urlMMR)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(response.status);
+            }
+            return response.json();
+          })
+          .then(data => {
+            fetch(urlAccount)
+              .then(response => {
+                if (!response.ok) {
+                  throw new Error(response.status);
+                }
+                return response.json();
+              })
+              .then(accountData => {
+                const infoDiv = document.getElementById("info");
+                const mmrInfo = `
+                  <img id="rankImage" src="${data.data.images.small}" alt="Immagine del rank">
+                  <p>Actual Rank: ${data.data.currenttierpatched}</p>
+                  <p>Current RR: ${data.data.ranking_in_tier}</p>
+                  <p>Account Level: ${accountData.data.account_level}</p>
+                  <p>MMR in the last game: ${data.data.mmr_change_to_last_game}</p>
+                `;
+                infoDiv.innerHTML = mmrInfo;
+              })
+              .catch(error => {
+                const infoDiv = document.getElementById("info");
+                infoDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+              });
+          })
+          .catch(error => {
+            const infoDiv = document.getElementById("info");
+            infoDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+          });
+      }
+    </script>
+  </body>
+</html>

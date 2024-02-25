@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Valorant MMR History</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f2f2f2;
+      }
+
+      /* Stili per il titolo */
+      h1 {
+        text-align: center;
+        margin-top: 40px;
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      label {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+      } 
+
+      input[type="text"] {
+        padding: 8px;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+        margin-bottom: 20px;
+        width: 200px;
+        box-sizing: border-box;
+        text-align: center; /* aggiunta */
+      }
+
+      button {
+        background-color: #333;
+        color: #fff;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-top: 20px; /* spostato dalla regola precedente */
+      }
+
+      button:hover {
+        background-color: #555;
+      }
+
+      #mmr-history {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 1.2em;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: #fff;
+      }
+      #mmr-history div {
+        margin-bottom: 10px;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 10px;
+      }
+      #mmr-history div:last-child {
+        border-bottom: none;
+      }
+
+      /* Aggiunta per centrare gli input e il pulsante */
+      #input-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 35vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="input-container">
+    <h1>Valorant MMR History</h1>
+    
+    <label for="username">Username:</label>
+    <input id="username" type="text" placeholder="Username">
+    <label for="tag">Tag:</label>
+    <input id="tag" type="text" placeholder="Tag">
+    <button id="get-mmr-history">Ottieni la cronologia</button>
+  </div>
+  
+    <div id="mmr-history"></div>
+    <script>
+      
+      $(document).ready(function() {
+        // Ripristina i valori degli input dalla cache dei cookie
+        if (document.cookie.includes("username=")) {
+          $("#username").val(getCookie("username_mmrhistory"));
+        }
+        if (document.cookie.includes("tag=")) {
+          $("#tag").val(getCookie("tag_mmrhistory"));
+        }
+      });
+    
+      $('#get-mmr-history').click(function() {
+        var username = $('#username').val();
+        var tag = $('#tag').val();
+    
+        // Salva i valori degli input nella cache dei cookie
+        setCookie("username_mmrhistory", username, 7);
+        setCookie("tag_mmrhistory", tag, 7);
+    
+        var requestUrl = 'https://api.henrikdev.xyz/valorant/v1/mmr-history/eu/' + username + '/' + tag;
+        $.ajax({
+          url: requestUrl,
+          success: function(data) {
+            var mmrHistory = $('#mmr-history');
+            mmrHistory.empty();
+            var historyData = data.data;
+            historyData.forEach(function(history) {
+              var historyDiv = $('<div>');
+              var rank = history.currenttierpatched;
+              var rankScore = history.ranking_in_tier;
+              var mmrChange = history.mmr_change_to_last_game;
+              var matchDate = new Date(history.date).toLocaleString();
+              historyDiv.append($('<p>').text('Rank: ' + rank));
+              historyDiv.append($('<p>').text('RR: ' + rankScore));
+              historyDiv.append($('<p>').text('MMR Change: ' + mmrChange));
+              historyDiv.append($('<p>').text('Match Date: ' + matchDate));
+              mmrHistory.append(historyDiv);
+            });
+          },
+          error: function() {
+            alert('Impossibile trovare la cronologia.');
+          }
+        });
+      });
+    
+      // Funzione per impostare un cookie
+      function setCookie(name, value, days) {
+        var expires = "";
+        if (days) {
+          var date = new Date();
+          date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+          expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "") + expires + "; path=/";
+      }
+    
+      // Funzione per ottenere un cookie
+      function getCookie(name) {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+          var c = ca[i];
+          while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+          if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+      }
+    </script>
+ 

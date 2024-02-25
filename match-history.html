@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Valorant Matches</title>
+    <style>
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Stili per il titolo */
+h1 {
+text-align: center;
+margin-top: 40px;
+margin-bottom: 20px;
+color: #333;
+}
+
+/* Stili per il form */
+form {
+display: flex;
+flex-direction: column;
+align-items: center;
+margin-bottom: 40px;
+}
+
+label {
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+input[type="text"] {
+    padding: 8px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    margin-bottom: 20px;
+    width: 200px;
+    box-sizing: border-box;
+    text-align: center; /* aggiunta */
+  }
+
+
+  button {
+    background-color: #333;
+    color: #fff;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 20px; /* spostato dalla regola precedente */
+}
+
+button:hover {
+  background-color: #555;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  background-color: #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  margin-top: 20px;
+}
+
+th {
+  background-color: #333;
+  color: #fff;
+  font-weight: bold;
+  text-align: left;
+  padding: 10px;
+}
+
+td {
+  border-bottom: 1px solid #ccc;
+  padding: 10px;
+}
+
+.error-message {
+  text-align: center;
+  color: #cc0000;
+  font-weight: bold;
+  margin: 20px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    margin: 0 20px;
+  }
+}
+
+    </style>
+  </head>
+  <body>
+    <h1>Valorant Matches</h1>
+    <form>
+      <label for="username">Username:</label>
+      <input type="text" id="username" placeholder="Username" name="username">
+      <label for="tag">Tag:</label>
+      <input type="text" id="tag" placeholder="Tag" name="tag">
+      <button type="button" onclick="getMatches()">Ottieni i match</button>
+    </form>
+    <table>
+      <thead>
+        <tr>
+          <th>Match ID</th>
+          <th>Map</th>
+          <th>Server</th>
+          <th>Rounds played</th>
+          <th>Date</th>
+          <th>Agent used</th>
+          <th>Kills</th>
+          <th>Deaths</th>
+          <th>Assists</th>
+          <th>Headshots</th>
+          <th>Body Shots</th>
+          <th>Leg Shots</th>
+        </tr>
+      </thead>
+      <tbody id="matches">
+      </tbody>
+    </table>
+
+    <script>
+
+      function setCookie(name, value, days) {
+        const expires = new Date();
+        expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+        document.cookie = name + '=' + value + ';expires=' + expires.toUTCString();
+      }
+
+      function getCookie(name) {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.startsWith(name + '=')) {
+            return cookie.substring(name.length + 1);
+          }
+        }
+        return null;
+      }
+
+      function loadInputs() {
+        const usernameInput = document.getElementById('username');
+        const tagInput = document.getElementById('tag');
+        const savedUsername = getCookie('username_match_history');
+        const savedTag = getCookie('tag_match_history');
+        if (savedUsername !== null) {
+          usernameInput.value = savedUsername;
+        }
+        if (savedTag !== null) {
+          tagInput.value = savedTag;
+        }
+      }
+
+      function saveInputs() {
+        const usernameInput = document.getElementById('username');
+        const tagInput = document.getElementById('tag');
+        setCookie('username_match_history', usernameInput.value, 7);
+        setCookie('tag_match_history', tagInput.value, 7);
+      }
+
+      window.onload = function() {
+        loadInputs();
+        document.getElementById('username').addEventListener('change', saveInputs);
+        document.getElementById('tag').addEventListener('change', saveInputs);
+      };
+
+      function getMatches() {
+        const username = document.getElementById('username').value;
+        const tag = document.getElementById('tag').value;
+
+        const apiUrl = `https://api.henrikdev.xyz/valorant/v3/matches/eu/${username}/${tag}?filter=competitive`;
+
+        fetch(apiUrl)
+          .then(response => response.json())
+          .then(data => {
+            const matches = data.data.slice(0, 5);
+            const matchesTable = document.getElementById('matches');
+            matchesTable.innerHTML = '';
+
+            // Trova il giocatore specifico
+            const player = data.data[0].players.all_players.find(p => p.name === username && p.tag === tag);
+
+            matches.forEach(match => {
+              const metadata = match.metadata;
+              const matchRow = document.createElement('tr');
+              matchRow.innerHTML = `<td>${metadata.matchid}</td>
+                                    <td>${metadata.map}</td>
+                                    <td>${metadata.cluster}</td>
+                                    <td>${metadata.rounds_played}</td>
+                                    <td>${metadata.game_start_patched}</td>`;
+              if (player && match.players.all_players.some(p => p.name === player.name && p.tag === player.tag)) {
+                const playerMatch = match.players.all_players.find(p => p.name === player.name && p.tag === player.tag);
+                matchRow.innerHTML += `<td>${playerMatch.character}</td>
+                                        <td>${playerMatch.stats.kills}</td>
+                                        <td>${playerMatch.stats.deaths}</td>
+                                        <td>${playerMatch.stats.assists}</td>
+                                        <td>${playerMatch.stats.headshots}</td>
+                                        <td>${playerMatch.stats.bodyshots}</td>
+                                        <td>${playerMatch.stats.legshots}</td>`;
+              } else {
+                matchRow.innerHTML += `<td colspan="7">Per ricevere queste informazioni, inserire correttamente con le maiuscole e le minuscole il nome e il tag!</td>`;
+              }
+              matchesTable.appendChild(matchRow);
+            });
+          })
+          .catch(error => {
+            console.error('Impossibile trovare i match:', error);
+          });
+      }
+    </script>
+  </body>
+</html>

@@ -73,7 +73,7 @@
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
             text-align: center;
             margin: 0 auto;
-            overflow-wrap: break-word; /* Consente di gestire i link lunghi */
+            overflow-wrap: break-word;
         }
 
         p {
@@ -89,9 +89,9 @@
             border-radius: 5px;
             font-size: 16px;
             display: block;
-            word-wrap: break-word; /* Assicura che il testo vada a capo */
+            word-wrap: break-word;
             max-width: 100%;
-            white-space: pre-wrap; /* Gestisce il testo lungo */
+            white-space: pre-wrap;
         }
 
         #error {
@@ -99,6 +99,13 @@
             font-size: 16px;
             margin-top: 20px;
             text-align: center;
+        }
+
+        #timezone-textbox {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -121,6 +128,21 @@
             <option value="kr">KR</option>
         </select>
 
+        <label>
+            <input type="checkbox" id="add-timezone" onclick="toggleTimezone()"> Add Timezone (default: Europe/Rome)
+        </label>
+
+        <div id="timezone-textbox">
+            <label for="timezone">Timezone</label>
+            <input type="text" id="timezone" placeholder="Enter your timezone" value="Europe/Rome">
+        </div>
+
+        <label for="bot-type">Select Bot Type</label>
+        <select id="bot-type" required>
+            <option value="streamelements" selected>StreamElements</option>
+            <option value="nightbot">Nightbot</option>
+        </select>
+
         <button type="button" onclick="generateLink()">Generate</button>
     </form>
 
@@ -128,33 +150,40 @@
     <div id="error"></div>
 
     <script>
-        async function fetchAPI(url) {
-            try {
-                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';  // CORS proxy
-                const response = await fetch(proxyUrl + url);
-                if (!response.ok) {
-                    throw new Error('API request failed');
-                }
-                const data = await response.json();
-                return JSON.stringify(data, null, 2);
-            } catch (error) {
-                return `Error: ${error.message}`;
+        function toggleTimezone() {
+            const addTimezone = document.getElementById('add-timezone').checked;
+            const timezoneTextbox = document.getElementById('timezone-textbox');
+    
+            if (addTimezone) {
+                timezoneTextbox.style.display = 'flex';
+            } else {
+                timezoneTextbox.style.display = 'none';
             }
         }
-
+    
         async function generateLink() {
             const username = document.getElementById('username').value;
             const tag = document.getElementById('tag').value;
             const region = document.getElementById('region').value;
-
+            const addTimezone = document.getElementById('add-timezone').checked;
+            const timezone = document.getElementById('timezone').value;
+            const botType = document.getElementById('bot-type').value;
+    
             if (username && tag && region) {
-                const mmrUrl = `https://vaccie.pythonanywhere.com/mmr/${username}/${tag}/${region}`;
-                const matchHistoryUrl = `https://vaccie.pythonanywhere.com/match_history/${username}/${tag}/${region}/pc`;
-
+                let mmrUrl = `https://vaccie.pythonanywhere.com/mmr/${username}/${tag}/${region}`;
+                let matchHistoryUrl = `https://vaccie.pythonanywhere.com/match_history/${username}/${tag}/${region}/pc`;
+    
+                if (addTimezone && timezone) {
+                    const timezoneParam = `?timezone=${encodeURIComponent(timezone)}`;
+                    mmrUrl += timezoneParam;
+                    matchHistoryUrl += timezoneParam;
+                }
+    
+                const botPrefix = botType === 'streamelements' ? '$(customapi.' : '$(urlfetch ';
                 document.getElementById('info').style.display = 'flex';
                 document.getElementById('info').innerHTML = `
-                    <p><strong>MMR API Link:</strong><br><code>$(customapi.${mmrUrl})</code></p>
-                    <p><strong>Match History API Link:</strong><br><code>$(customapi.${matchHistoryUrl})</code></p>
+                    <p><strong>MMR API Link:</strong><br><code>${botPrefix}${mmrUrl})</code></p>
+                    <p><strong>Match History API Link:</strong><br><code>${botPrefix}${matchHistoryUrl})</code></p>
                 `;
                 document.getElementById('error').innerText = '';
             } else {
@@ -163,6 +192,6 @@
                 document.getElementById('info').innerHTML = '';
             }
         }
-    </script>
+    </script>    
 </body>
 </html>
